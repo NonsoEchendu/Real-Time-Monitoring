@@ -1,0 +1,68 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+      - targets: ['172.26.14.190:9093']        
+
+# Load rules once and periodically evaluate them
+rule_files:
+  - "rules/node_exporter_alerts.yml"
+  - "rules/blackbox_alerts.yml" 
+  - "rules/dora_alerts.yml"
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'node_exporter'
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['172.26.14.190:9100']
+      
+  # PM2 metrics from host (for NextJS apps)
+  - job_name: 'pm2'
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['172.26.14.190:9209']
+    
+  # Blackbox exporter for HTTP/HTTPS uptime and SSL monitoring
+  - job_name: 'blackbox_http'
+    metrics_path: /probe
+    params:
+      module: [http_2xx]  # Look for a HTTP 200 response
+    static_configs:
+      - targets:
+        - https://staging.gradific.com
+        # Add more URLs as needed
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: 172.26.14.190:9115  # Blackbox exporter's address
+        
+  # Blackbox exporter for SSL monitoring
+  - job_name: 'blackbox_ssl'
+    metrics_path: /probe
+    params:
+      module: [tls]  # Use the TLS probe
+    static_configs:
+      - targets:
+        - staging.gradific.com:443
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: 172.26.14.190:9115
+  
+  - job_name: 'dora-metrics'
+    static_configs:
+      - targets: ['172.26.14.190:8000']

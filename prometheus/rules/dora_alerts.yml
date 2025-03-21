@@ -1,0 +1,29 @@
+groups:
+- name: dora-metrics
+  rules:
+  - alert: HighChangeFailureRate
+    expr: (sum(increase(github_deployment_failed_total[7d])) / sum(increase(github_deployment_total[7d]))) * 100 > 15
+    for: 1h
+    labels:
+      severity: warning
+    annotations:
+      summary: "High change failure rate"
+      description: "Change failure rate is > 15% over the last 7 days\n  VALUE = {{ $value }}%"
+
+  - alert: LongMeanTimeToRestore
+    expr: avg(github_incident_mttr_seconds) / 60 > 60
+    for: 1h
+    labels:
+      severity: warning
+    annotations:
+      summary: "Long mean time to restore"
+      description: "Mean time to restore is > 60 minutes\n  VALUE = {{ $value }} minutes"
+
+  - alert: LowDeploymentFrequency
+    expr: sum(increase(github_deployment_total[7d])) < 3
+    for: 1d
+    labels:
+      severity: warning
+    annotations:
+      summary: "Low deployment frequency"
+      description: "Less than 3 deployments in the last 7 days\n  VALUE = {{ $value }} deployments"
